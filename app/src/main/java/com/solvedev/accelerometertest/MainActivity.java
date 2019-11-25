@@ -23,7 +23,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float last_x, last_y, last_z;
     private static final int SHAKE_THRESHOLD = 600;
 
-    TextView tvAngka, tvKecepatan, tvPosisi;
+    TextView tvAngka, tvKecepatan, tvPosisi, tvWaktu;
 
     float[] percepatan = new float[1000];
     float[] kecepatan = new float[1000];
@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         tvAngka = (TextView) findViewById(R.id.angka);
         tvKecepatan = (TextView) findViewById(R.id.kecepatan);
         tvPosisi = (TextView) findViewById(R.id.posisi);
+        tvWaktu = (TextView) findViewById(R.id.waktu);
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -70,7 +71,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 float speed = Math.abs(x + y + z - last_x - last_y - last_z) / diffTime * 10000;
 
-                waktu[index] = speed;
+                waktu[index] = diffTime * 10000;
+                kecepatan[index] = speed;
 
                 if (speed > SHAKE_THRESHOLD) {
 
@@ -88,17 +90,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 posisi[0] = 0;
 
                 if (index == 0) {
-                    kecepatan[index] = 0 + percepatan[index] + percepatan[index + 1] / 2 * waktu[index + 1] - waktu[index];
+//                    kecepatan[index] = 0 + percepatan[index] + percepatan[index + 1] / 2 * waktu[index + 1] - waktu[index];
                     posisi[index] = 0 + kecepatan[index] + kecepatan[index + 1] / 2 * waktu[index + 1] - waktu[index];
                 } else {
-                    kecepatan[index] = kecepatan[index - 1] + percepatan[index] + percepatan[index + 1] / 2 * waktu[index + 1] - waktu[index];
-                    posisi[index] = posisi[index - 1] + kecepatan[index] + kecepatan[index + 1] / 2 * waktu[index + 1] - waktu[index];
+//                    kecepatan[index] = kecepatan[index - 1] + percepatan[index] + percepatan[index + 1] / 2 * waktu[index + 1] - waktu[index];
+                  posisi[index] = posisi[index - 1] + kecepatan[index] + kecepatan[index + 1] / 2 * waktu[index + 1] - waktu[index];
                 }
 
 
                 tvAngka.setText("Percepatan = " + percepatan[index]);
                 tvKecepatan.setText("Kecepatan = " + kecepatan[index]);
                 tvPosisi.setText("Posisi = " + posisi[index]);
+                tvWaktu.setText("Waktu = " + waktu[index]);
 
                 index++;
             }
