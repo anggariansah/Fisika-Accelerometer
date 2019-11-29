@@ -22,6 +22,7 @@ import com.jjoe64.graphview.series.LineGraphSeries;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class Graph extends AppCompatActivity implements SensorEventListener {
@@ -44,14 +45,18 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
     private long lastUpdate = 0;
     private float last_x, last_y, last_z;
-    float speed1, last_speed;
+    float speed1, last_speed, last_position, last_time;
     private static final int SHAKE_THRESHOLD = 600;
 
-    float[] percepatan = new float[1000];
-    float[] kecepatan = new float[1000];
-    float[] posisi = new float[1000];
-    float[] waktu = new float[1000];
+    float[] percepatan = new float[10000];
+    float[] kecepatan = new float[10000];
+    float[] posisi = new float[10000];
+    float[] waktu = new float[10000];
+    float[] selisihWaktu = new float[10000];
     int index = 0;
+
+    Date timelast;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +73,8 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         senSensorManager.registerListener(this, senAccelerometer , SensorManager.SENSOR_DELAY_FASTEST);
+
+        timelast =  new Date(System.currentTimeMillis());
 
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -128,9 +135,9 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
         graph.getViewport().setYAxisBoundsManual(true);
         // minimal y
-        graph.getViewport().setMinY(-1000);
+        graph.getViewport().setMinY(-10);
         // maximal y
-        graph.getViewport().setMaxY(1000);
+        graph.getViewport().setMaxY(10);
 
         graph.getGridLabelRenderer().setGridStyle(GridLabelRenderer.GridStyle.NONE);
         // title di x
@@ -200,36 +207,46 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         Sensor mySensor = event.sensor;
 
         if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            float x = event.values[0];
-            float y = event.values[1];
-            float z = event.values[2];
 
             long curTime = System.currentTimeMillis();
+            long diffTime = (curTime - lastUpdate);
+
+
+
+            Date timeNow = new Date(System.currentTimeMillis());
+            float timeDelta = timeNow.getTime() - timelast.getTime();
+            float waktuSekarang = timeDelta/1000;
+
+
+
+            float deltaT = waktuSekarang - last_time;
+            float y = event.values[1];
+            float speed1 = last_speed + (((y  + last_y) / 2) * deltaT);
+            float position1 = last_position + (((speed1 + last_speed) / 2) * deltaT);
+//            float position = ((speed1 + last_speed) / 2 * diffTime) +  last_position;
+
+
+
 
             if ((curTime - lastUpdate) > 10) {
-                long diffTime = (curTime - lastUpdate);
                 lastUpdate = curTime;
 
-                float speed = Math.abs(y  - last_y)/ diffTime * 10000;
-                speed1 = Math.abs(y  + last_y) / 2 * diffTime;
-                float position = (speed1 + last_speed) / 2 * diffTime;
+                //float speed = Math.abs(y  - last_y)/ diffTime * 10000;
 
-
-                float speed2 =
-
-                waktu[index] = diffTime;
-                kecepatan[index] = speed1;
-                posisi[index] = position;
+                waktu[index] = waktuSekarang;
+                posisi[index] = position1;
                 percepatan[index] = y;
+                kecepatan[index] = speed1;
+                selisihWaktu[index] = deltaT;
+
 
                 //float posisi = Math.abs(x + y + z - last_x)/ diffTime * 10000;
 
-                if (speed > SHAKE_THRESHOLD) {
-
-                }
 
                 last_y = y;
                 last_speed = speed1;
+                last_position = position1;
+                last_time = waktuSekarang;
 
 
 
@@ -272,10 +289,10 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
     public void export(){
 
        StringBuilder data = new StringBuilder();
-       data.append("Percepatan,Kecepatan,Posisi");
+       data.append("Percepatan,Kecepatan,Posisi,Waktu,Delta T");
 
-       for(int i = 0; i < 50;i++){
-           data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]);
+       for(int i = 0; i < 500;i++){
+           data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]+","+waktu[i]+","+selisihWaktu[i]);
        }
 
         try{
