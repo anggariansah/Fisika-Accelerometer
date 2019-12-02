@@ -29,12 +29,13 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
     // Widget
     private GraphView graphPercepatan, graphKecepatan, graphPosisi;
-    private Button btnStart;
+    private Button btnExport;
     private TextView tvJumlah;
 
     // variabel yang akan digunakan pada grafik
     private SensorManager senSensorManager;
     private Sensor senAccelerometer;
+    private static final double GRAVITY = 9.807;
 
     private double graphLastXValuePercepatan = 0d, graphLastXValueKecepatan = 0d, graphLastXValuePosisi = 0d;
     double graphYValuePercepatan = 0d, graphYValueKecepatan = 0d, graphYValuePosisi = 0d;
@@ -44,15 +45,15 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
     private ArrayList<Double> arrayPosisi = new ArrayList<>();
 
     private long lastUpdate = 0;
-    private float last_x, last_y, last_z;
-    float speed1, last_speed, last_position, last_time;
+    private double last_x, last_y, last_z;
+    double speed1, last_speed, last_position, last_time;
     private static final int SHAKE_THRESHOLD = 600;
 
-    float[] percepatan = new float[10000];
-    float[] kecepatan = new float[10000];
-    float[] posisi = new float[10000];
-    float[] waktu = new float[10000];
-    float[] selisihWaktu = new float[10000];
+    double[] percepatan = new double[10000];
+    double[] kecepatan = new double[10000];
+    double[] posisi = new double[10000];
+    double[] waktu = new double[10000];
+    double[] selisihWaktu = new double[10000];
     int index = 0;
 
     Date timelast;
@@ -68,7 +69,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         graphKecepatan = (GraphView) findViewById(R.id.graph_kecepatan);
         graphPosisi = (GraphView) findViewById(R.id.graph_posisi);
         tvJumlah = (TextView) findViewById(R.id.jumlah);
-        btnStart = (Button) findViewById(R.id.btn_start);
+        btnExport = (Button) findViewById(R.id.btn_export);
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -76,7 +77,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
         timelast =  new Date(System.currentTimeMillis());
 
-        btnStart.setOnClickListener(new View.OnClickListener() {
+        btnExport.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 export();
@@ -214,19 +215,16 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
 
             Date timeNow = new Date(System.currentTimeMillis());
-            float timeDelta = timeNow.getTime() - timelast.getTime();
-            float waktuSekarang = timeDelta/1000;
+            double timeDelta = timeNow.getTime() - timelast.getTime();
+            double waktuSekarang = timeDelta/1000;
 
 
 
-            float deltaT = waktuSekarang - last_time;
-            float y = event.values[1];
-            float speed1 = last_speed + (((y  + last_y) / 2) * deltaT);
-            float position1 = last_position + (((speed1 + last_speed) / 2) * deltaT);
+            double deltaT = waktuSekarang - last_time;
+            double y = event.values[1] - GRAVITY;
+            double speed1 = last_speed + (((y  + last_y) / 2) * deltaT);
+            double position1 = last_position + (((speed1 + last_speed) / 2) * deltaT);
 //            float position = ((speed1 + last_speed) / 2 * diffTime) +  last_position;
-
-
-
 
             if ((curTime - lastUpdate) > 10) {
                 lastUpdate = curTime;
@@ -250,7 +248,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
 
 
-                float valuePercepatan = percepatan[index];
+                double valuePercepatan = percepatan[index];
                 graphYValuePercepatan = valuePercepatan;
                 // menambahkan data ke dalam array untuk nanti disimpan ke database
                 arrayPercepatan.add(graphYValuePercepatan);
@@ -262,7 +260,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 //                tvJumlah.setText(a.size());
                 graphLastXValuePercepatan += 10;
 
-                float valueKecepatan = kecepatan[index];
+                double valueKecepatan = kecepatan[index];
                 graphYValueKecepatan = valueKecepatan;
                 // menambahkan data  ke dalam array untuk nanti disimpan ke database
                 arrayKecepatan.add(graphYValueKecepatan);
@@ -271,7 +269,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
                 // bagian ini untuk mengatur penambahan nilai x
                 graphLastXValueKecepatan += 10;
 
-                float valuePosisi = posisi[index];
+                double valuePosisi = posisi[index];
                 graphYValuePosisi = valuePosisi;
                 // menambahkan data ke dalam array untuk nanti disimpan ke database
                 arrayPosisi.add(graphYValuePosisi);
@@ -291,9 +289,13 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
        StringBuilder data = new StringBuilder();
        data.append("Percepatan,Kecepatan,Posisi,Waktu,Delta T");
 
-       for(int i = 0; i < 500;i++){
-           data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]+","+waktu[i]+","+selisihWaktu[i]);
-       }
+//       for(int i = 0; i < 500;i++){
+//           data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]+","+waktu[i]+","+selisihWaktu[i]);
+//       }
+
+        for(int i = 0; i < arrayKecepatan.size(); i++){
+            data.append("\n"+arrayPercepatan.get(i)+","+arrayKecepatan.get(i)+","+arrayPosisi.get(i)+","+waktu[i]+","+selisihWaktu[i]);
+        }
 
         try{
             FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
