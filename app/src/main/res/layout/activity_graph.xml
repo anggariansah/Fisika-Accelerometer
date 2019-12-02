@@ -35,11 +35,12 @@
 
 
         <Button
-            android:id="@+id/btn_start"
+            android:id="@+id/btn_export"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="Start" />
+            android:layout_marginBottom="10dp"
+            android:text="Export CSV" />
 
     </LinearLayout>
 

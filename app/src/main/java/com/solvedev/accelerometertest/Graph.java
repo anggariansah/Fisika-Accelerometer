@@ -15,6 +15,9 @@ import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -25,6 +28,7 @@ import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
@@ -114,6 +118,32 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
             }
         } else {
             return true;
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_option, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.save:
+
+                if (Build.VERSION.SDK_INT >= 23) {
+                    if (periksaIzinPenyimpanan()) {
+                        export();
+                    }
+                } else {
+                    export();
+                }
+
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
@@ -228,7 +258,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         // mengeset mSeries ke graph
         // mSeries ini berfungsi untuk menampung data dan kemudian digambar menjadi titik di grafik
         mSeriesPosisi = new LineGraphSeries<>();
-git p        graph.addSeries(mSeriesPosisi);
+       graph.addSeries(mSeriesPosisi);
     }
 
     @Override
@@ -320,6 +350,13 @@ git p        graph.addSeries(mSeriesPosisi);
 //       for(int i = 0; i < 500;i++){
 //           data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]+","+waktu[i]+","+selisihWaktu[i]);
 //       }
+
+
+        for(int i = 0; i < arrayKecepatan.size(); i++){
+            data.append("\n"+arrayPercepatan.get(i)+","+arrayKecepatan.get(i)+","+arrayPosisi.get(i)+","+waktu[i]+","+selisihWaktu[i]);
+        }
+
+
 
         for(int i = 0; i < arrayKecepatan.size(); i++){
             data.append("\n"+arrayPercepatan.get(i)+","+arrayKecepatan.get(i)+","+arrayPosisi.get(i)+","+waktu[i]+","+selisihWaktu[i]);
