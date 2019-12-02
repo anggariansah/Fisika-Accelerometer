@@ -1,13 +1,18 @@
 package com.solvedev.accelerometertest;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
@@ -25,6 +30,7 @@ import com.jjoe64.graphview.series.LineGraphSeries;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -33,12 +39,13 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
     // Widget
     private GraphView graphPercepatan, graphKecepatan, graphPosisi;
-    private Button btnStart;
+    private Button btnExport;
     private TextView tvJumlah;
 
     // variabel yang akan digunakan pada grafik
     private SensorManager senSensorManager;
     private Sensor senAccelerometer;
+    private static final double GRAVITY = 9.807;
 
     private double graphLastXValuePercepatan = 0d, graphLastXValueKecepatan = 0d, graphLastXValuePosisi = 0d;
     double graphYValuePercepatan = 0d, graphYValueKecepatan = 0d, graphYValuePosisi = 0d;
@@ -48,15 +55,16 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
     private ArrayList<Double> arrayPosisi = new ArrayList<>();
 
     private long lastUpdate = 0;
-    private float last_x, last_y, last_z;
-    float speed1, last_speed, last_position, last_time;
+    private double last_x, last_y, last_z;
+    double speed1, last_speed, last_position, last_time;
     private static final int SHAKE_THRESHOLD = 600;
+    private static final int REQUEST_CODE_STORAGE = 100;
 
-    float[] percepatan = new float[10000];
-    float[] kecepatan = new float[10000];
-    float[] posisi = new float[10000];
-    float[] waktu = new float[10000];
-    float[] selisihWaktu = new float[10000];
+    double[] percepatan = new double[10000];
+    double[] kecepatan = new double[10000];
+    double[] posisi = new double[10000];
+    double[] waktu = new double[10000];
+    double[] selisihWaktu = new double[10000];
     int index = 0;
 
     Date timelast;
@@ -72,7 +80,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         graphKecepatan = (GraphView) findViewById(R.id.graph_kecepatan);
         graphPosisi = (GraphView) findViewById(R.id.graph_posisi);
         tvJumlah = (TextView) findViewById(R.id.jumlah);
-        btnStart = (Button) findViewById(R.id.btn_start);
+        btnExport = (Button) findViewById(R.id.btn_export);
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -80,16 +88,37 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
         timelast =  new Date(System.currentTimeMillis());
 
-        btnStart.setOnClickListener(new View.OnClickListener() {
+        btnExport.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                export();
+
+                if (Build.VERSION.SDK_INT >= 23) {
+                    if (periksaIzinPenyimpanan()) {
+                        export();
+                    }
+                } else {
+                    export();
+                }
             }
         });
 
         initGraphPercepatan(graphPercepatan);
         initGraphKecepatan(graphKecepatan);
         initGraphPosisi(graphPosisi);
+    }
+
+
+    public boolean periksaIzinPenyimpanan() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)  == PackageManager.PERMISSION_GRANTED) {
+                return true;
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE);
+                return false;
+            }
+        } else {
+            return true;
+        }
     }
 
     private void initGraphPercepatan(GraphView graph) {
@@ -218,19 +247,16 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
 
             Date timeNow = new Date(System.currentTimeMillis());
-            float timeDelta = timeNow.getTime() - timelast.getTime();
-            float waktuSekarang = timeDelta/1000;
+            double timeDelta = timeNow.getTime() - timelast.getTime();
+            double waktuSekarang = timeDelta/1000;
 
 
 
-            float deltaT = waktuSekarang - last_time;
-            float y = event.values[1];
-            float speed1 = last_speed + (((y  + last_y) / 2) * deltaT);
-            float position1 = last_position + (((speed1 + last_speed) / 2) * deltaT);
+            double deltaT = waktuSekarang - last_time;
+            double y = event.values[1] - GRAVITY;
+            double speed1 = last_speed + (((y  + last_y) / 2) * deltaT);
+            double position1 = last_position + (((speed1 + last_speed) / 2) * deltaT);
 //            float position = ((speed1 + last_speed) / 2 * diffTime) +  last_position;
-
-
-
 
             if ((curTime - lastUpdate) > 10) {
                 lastUpdate = curTime;
@@ -254,7 +280,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
 
 
-                float valuePercepatan = percepatan[index];
+                double valuePercepatan = percepatan[index];
                 graphYValuePercepatan = valuePercepatan;
                 // menambahkan data ke dalam array untuk nanti disimpan ke database
                 arrayPercepatan.add(graphYValuePercepatan);
@@ -266,7 +292,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 //                tvJumlah.setText(a.size());
                 graphLastXValuePercepatan += 10;
 
-                float valueKecepatan = kecepatan[index];
+                double valueKecepatan = kecepatan[index];
                 graphYValueKecepatan = valueKecepatan;
                 // menambahkan data  ke dalam array untuk nanti disimpan ke database
                 arrayKecepatan.add(graphYValueKecepatan);
@@ -275,7 +301,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
                 // bagian ini untuk mengatur penambahan nilai x
                 graphLastXValueKecepatan += 10;
 
-                float valuePosisi = posisi[index];
+                double valuePosisi = posisi[index];
                 graphYValuePosisi = valuePosisi;
                 // menambahkan data ke dalam array untuk nanti disimpan ke database
                 arrayPosisi.add(graphYValuePosisi);
@@ -295,27 +321,57 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
        StringBuilder data = new StringBuilder();
        data.append("Percepatan,Kecepatan,Posisi,Waktu,Delta T");
 
-       for(int i = 0; i < 500;i++){
-           data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]+","+waktu[i]+","+selisihWaktu[i]);
-       }
+//       for(int i = 0; i < 500;i++){
+//           data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]+","+waktu[i]+","+selisihWaktu[i]);
+//       }
 
-        try{
-            FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
-            fos.write(data.toString().getBytes());
-            fos.close();
-
-            Context context = getApplicationContext();
-            File filelocation = new File(getFilesDir(), "data.csv");
-            Uri path = FileProvider.getUriForFile(context, "com.solvedev.accelerometertest.fileprovider",filelocation);
-            Intent fileIntent = new Intent(Intent.ACTION_SEND);
-            fileIntent.setType("text/csv");
-            fileIntent.putExtra(Intent.EXTRA_SUBJECT, "Data");
-            fileIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            fileIntent.putExtra(Intent.EXTRA_STREAM, path);
-            startActivity(Intent.createChooser(fileIntent, "Send Email"));
-        }catch (Exception e){
-            e.printStackTrace();
+        for(int i = 0; i < arrayKecepatan.size(); i++){
+            data.append("\n"+arrayPercepatan.get(i)+","+arrayKecepatan.get(i)+","+arrayPosisi.get(i)+","+waktu[i]+","+selisihWaktu[i]);
         }
+
+        String state = Environment.getExternalStorageState();
+        if (!Environment.MEDIA_MOUNTED.equals(state)) {
+            return;
+        }
+
+        String path = Environment.getExternalStorageDirectory().toString() + "/kominfo.proyek1";
+        File parent = new File(path);
+        if (parent.exists()) {
+            try {
+                FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
+                fos.write(data.toString().getBytes());
+                fos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            parent.mkdir();
+            try {
+                FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
+                fos.write(data.toString().getBytes());
+                fos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+//        try{
+//            FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
+//            fos.write(data.toString().getBytes());
+//            fos.close();
+//
+//            Context context = getApplicationContext();
+//            File filelocation = new File(getFilesDir(), "data.csv");
+//            Uri path = FileProvider.getUriForFile(context, "com.solvedev.accelerometertest.fileprovider",filelocation);
+//            Intent fileIntent = new Intent(Intent.ACTION_SEND);
+//            fileIntent.setType("text/csv");
+//            fileIntent.putExtra(Intent.EXTRA_SUBJECT, "Data");
+//            fileIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+//            fileIntent.putExtra(Intent.EXTRA_STREAM, path);
+//            startActivity(Intent.createChooser(fileIntent, "Send Email"));
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
     }
 
 
