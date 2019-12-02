@@ -10,6 +10,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -20,6 +23,7 @@ import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Date;
@@ -173,9 +177,9 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
 
         graph.getViewport().setYAxisBoundsManual(true);
         // minimal y
-        graph.getViewport().setMinY(10);
+        graph.getViewport().setMinY(-10);
         // maximal y
-        graph.getViewport().setMaxY(5000);
+        graph.getViewport().setMaxY(50);
 
         graph.getGridLabelRenderer().setGridStyle(GridLabelRenderer.GridStyle.NONE);
         // title di x
@@ -311,6 +315,25 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
             startActivity(Intent.createChooser(fileIntent, "Send Email"));
         }catch (Exception e){
             e.printStackTrace();
+        }
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_option, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.save:
+                export();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
