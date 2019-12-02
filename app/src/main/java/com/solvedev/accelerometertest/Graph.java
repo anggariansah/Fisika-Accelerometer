@@ -1,13 +1,18 @@
 package com.solvedev.accelerometertest;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -21,6 +26,7 @@ import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -47,6 +53,7 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
     private float last_x, last_y, last_z;
     float speed1, last_speed, last_position, last_time;
     private static final int SHAKE_THRESHOLD = 600;
+    private static final int REQUEST_CODE_STORAGE = 100;
 
     float[] percepatan = new float[10000];
     float[] kecepatan = new float[10000];
@@ -79,13 +86,34 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                export();
+
+                if (Build.VERSION.SDK_INT >= 23) {
+                    if (periksaIzinPenyimpanan()) {
+                        export();
+                    }
+                } else {
+                    export();
+                }
             }
         });
 
         initGraphPercepatan(graphPercepatan);
         initGraphKecepatan(graphKecepatan);
         initGraphPosisi(graphPosisi);
+    }
+
+
+    public boolean periksaIzinPenyimpanan() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)  == PackageManager.PERMISSION_GRANTED) {
+                return true;
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CODE_STORAGE);
+                return false;
+            }
+        } else {
+            return true;
+        }
     }
 
     private void initGraphPercepatan(GraphView graph) {
@@ -295,23 +323,49 @@ public class Graph extends AppCompatActivity implements SensorEventListener {
            data.append("\n"+percepatan[i]+","+kecepatan[i]+","+posisi[i]+","+waktu[i]+","+selisihWaktu[i]);
        }
 
-        try{
-            FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
-            fos.write(data.toString().getBytes());
-            fos.close();
-
-            Context context = getApplicationContext();
-            File filelocation = new File(getFilesDir(), "data.csv");
-            Uri path = FileProvider.getUriForFile(context, "com.solvedev.accelerometertest.fileprovider",filelocation);
-            Intent fileIntent = new Intent(Intent.ACTION_SEND);
-            fileIntent.setType("text/csv");
-            fileIntent.putExtra(Intent.EXTRA_SUBJECT, "Data");
-            fileIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            fileIntent.putExtra(Intent.EXTRA_STREAM, path);
-            startActivity(Intent.createChooser(fileIntent, "Send Email"));
-        }catch (Exception e){
-            e.printStackTrace();
+        String state = Environment.getExternalStorageState();
+        if (!Environment.MEDIA_MOUNTED.equals(state)) {
+            return;
         }
+
+        String path = Environment.getExternalStorageDirectory().toString() + "/kominfo.proyek1";
+        File parent = new File(path);
+        if (parent.exists()) {
+            try {
+                FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
+                fos.write(data.toString().getBytes());
+                fos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            parent.mkdir();
+            try {
+                FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
+                fos.write(data.toString().getBytes());
+                fos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+//        try{
+//            FileOutputStream fos = openFileOutput("data.csv",Context.MODE_PRIVATE);
+//            fos.write(data.toString().getBytes());
+//            fos.close();
+//
+//            Context context = getApplicationContext();
+//            File filelocation = new File(getFilesDir(), "data.csv");
+//            Uri path = FileProvider.getUriForFile(context, "com.solvedev.accelerometertest.fileprovider",filelocation);
+//            Intent fileIntent = new Intent(Intent.ACTION_SEND);
+//            fileIntent.setType("text/csv");
+//            fileIntent.putExtra(Intent.EXTRA_SUBJECT, "Data");
+//            fileIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+//            fileIntent.putExtra(Intent.EXTRA_STREAM, path);
+//            startActivity(Intent.createChooser(fileIntent, "Send Email"));
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
     }
 
     @Override
